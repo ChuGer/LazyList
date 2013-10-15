@@ -1,5 +1,11 @@
 package com.fedorvlasov.lazylist;
 
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.Handler;
+import android.widget.ImageView;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,11 +20,6 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import android.os.Handler;
-import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.widget.ImageView;
 
 public class ImageLoader {
     
@@ -33,7 +34,7 @@ public class ImageLoader {
         executorService=Executors.newFixedThreadPool(5);
     }
     
-    final int stub_id=R.drawable.stub;
+    final int stub_id=R.drawable.ic_action_person;
     public void DisplayImage(String url, ImageView imageView)
     {
         imageViews.put(imageView, url);
@@ -53,7 +54,7 @@ public class ImageLoader {
         executorService.submit(new PhotosLoader(p));
     }
     
-    private Bitmap getBitmap(String url) 
+    public Bitmap getBitmap(String url)
     {
         File f=fileCache.getFile(url);
         
