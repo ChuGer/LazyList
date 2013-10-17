@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.widget.ImageView;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -121,6 +122,40 @@ public class ImageLoader {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public String saveBitmapInFile(final Bitmap sourceBitmap, final int preferredSize) {
+        final Bitmap bitmap;
+        if (sourceBitmap.getWidth() > preferredSize) {
+            bitmap = Bitmap.createScaledBitmap(sourceBitmap, preferredSize, preferredSize, false);
+        } else {
+            bitmap = sourceBitmap;
+        }
+        final String url = "userImage" + bitmap.hashCode();
+        File f = fileCache.getFile(url);
+        ByteArrayOutputStream bos = null;
+        FileOutputStream fos = null;
+        try {
+            bos = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bos);
+            byte[] bitmapData = bos.toByteArray();
+            fos = new FileOutputStream(f);
+            fos.write(bitmapData);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (fos != null) {
+                    fos.close();
+                }
+                if (bos != null) {
+                    bos.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return url;
     }
     
     //Task for the queue
