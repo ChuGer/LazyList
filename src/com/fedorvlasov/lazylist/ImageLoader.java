@@ -1,9 +1,13 @@
 package com.fedorvlasov.lazylist;
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Handler;
+import android.provider.ContactsContract;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
@@ -22,19 +26,23 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Pattern;
 
 public class ImageLoader {
 
     private static final int THREAD_POOL_SIZE = 5;
     private static final int CONNECTION_TIMEOUT_MS = 30000;
+    private final Pattern NUMBER_PATTERN = Pattern.compile("^[0-9]*$");
     private MemoryCache memoryCache = new MemoryCache();
     private FileCache fileCache;
     private Map<ImageView, String> imageViews = Collections.synchronizedMap(new WeakHashMap<ImageView, String>());
     private ExecutorService executorService;
     private Handler handler = new Handler(); //handler to display images in UI thread
     private int requiredSize = 70;
+    private Context context;
 
     public ImageLoader(Context context) {
+        this.context = context;
         fileCache = new FileCache(context);
         executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
     }
@@ -69,20 +77,53 @@ public class ImageLoader {
         if (b != null)
             return b;
 
-        //from web
+        //from web or content provider
         try {
             Bitmap bitmap = null;
-            URL imageUrl = new URL(url);
-            HttpURLConnection conn = (HttpURLConnection) imageUrl.openConnection();
-            conn.setConnectTimeout(CONNECTION_TIMEOUT_MS);
-            conn.setReadTimeout(CONNECTION_TIMEOUT_MS);
-            conn.setInstanceFollowRedirects(true);
-            InputStream is = conn.getInputStream();
-            OutputStream os = new FileOutputStream(f);
-            Utils.CopyStream(is, os);
-            os.close();
-            conn.disconnect();
-            bitmap = decodeFile(f);
+            if (NUMBER_PATTERN.matcher(url).matches()) {
+                // PHOTO_ID from old API
+                ContentResolver cr = context.getContentResolver();
+                final Cursor c = cr.query(ContactsContract.Data.CONTENT_URI, new String[]{
+                        ContactsContract.CommonDataKinds.Photo.PHOTO
+                }, ContactsContract.Data._ID + "=?", new String[]{url}, null);
+                if (c != null) {
+                    try {
+                        if (c.moveToFirst()) {
+                            byte[] imageBytes = null;
+                            imageBytes = c.getBlob(0);
+                            if (imageBytes != null) {
+                                bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+                            }
+                        }
+                        c.close();
+                    } finally {
+                        if (!c.isClosed()) {
+                            c.close();
+                        }
+                    }
+                }
+            } else if (url.startsWith("content://")) {
+                // PHOTO_URI from >= 11
+                Uri contentURI = Uri.parse(url);
+                ContentResolver cr = context.getContentResolver();
+                InputStream in = cr.openInputStream(contentURI);
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inSampleSize = 1;
+                bitmap = BitmapFactory.decodeStream(in, null, options);
+            } else {
+                URL imageUrl = new URL(url);
+                HttpURLConnection conn = (HttpURLConnection) imageUrl.openConnection();
+                conn.setConnectTimeout(CONNECTION_TIMEOUT_MS);
+                conn.setReadTimeout(CONNECTION_TIMEOUT_MS);
+                conn.setInstanceFollowRedirects(true);
+                InputStream is = conn.getInputStream();
+                OutputStream os = new FileOutputStream(f);
+                Utils.CopyStream(is, os);
+                os.close();
+                conn.disconnect();
+                bitmap = decodeFile(f);
+            }
+
             return bitmap;
         } catch (Throwable ex) {
             ex.printStackTrace();
