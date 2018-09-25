@@ -1,8 +1,21 @@
 apply plugin: 'com.android.library'
 
+
+allprojects {
+    repositories {
+        google() // and here
+        jcenter()
+    }
+}
+
 android {
-    buildToolsVersion "25.0.0"
-    compileSdkVersion 25
+    buildToolsVersion "28.0.3"
+    compileSdkVersion 27
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 27
+    }
 
     sourceSets {
         main {
@@ -15,6 +28,6 @@ android {
             assets.srcDirs = ['assets']
         }
 
-        instrumentTest.setRoot('test')
+//        instrumentTest.setRoot('test')
     }
 }
