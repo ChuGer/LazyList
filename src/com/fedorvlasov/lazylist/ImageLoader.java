@@ -105,8 +105,7 @@ public class ImageLoader {
             } else if (url.startsWith("content://")) {
                 // PHOTO_URI from >= 11
                 Uri contentURI = Uri.parse(url);
-                ContentResolver cr = context.getContentResolver();
-                InputStream in = cr.openInputStream(contentURI);
+                InputStream in = context.getContentResolver().openInputStream(contentURI);
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inSampleSize = 1;
                 bitmap = BitmapFactory.decodeStream(in, null, options);
