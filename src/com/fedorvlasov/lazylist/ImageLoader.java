@@ -89,7 +89,7 @@ public class ImageLoader {
                 if (c != null) {
                     try {
                         if (c.moveToFirst()) {
-                            byte[] imageBytes = null;
+                            byte[] imageBytes;
                             imageBytes = c.getBlob(0);
                             if (imageBytes != null) {
                                 bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
