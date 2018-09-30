@@ -37,7 +37,6 @@ public class ImageLoader {
     private FileCache fileCache;
     private Map<ImageView, String> imageViews = Collections.synchronizedMap(new WeakHashMap<ImageView, String>());
     private ExecutorService executorService;
-    private Handler handler = new Handler(); //handler to display images in UI thread
     private int requiredSize = 70;
     private Context context;
 
@@ -49,7 +48,7 @@ public class ImageLoader {
 
     final int stub_id = R.drawable.ic_action_person;
 
-    public void displayImage(String url, ImageView imageView) {
+    public void displayImage(String url, ImageView imageView, Handler handler) {
         final ViewGroup.LayoutParams layoutParams = imageView.getLayoutParams();
         if (layoutParams != null && layoutParams.width > 0) {
             requiredSize = layoutParams.width;
@@ -59,14 +58,14 @@ public class ImageLoader {
         if (bitmap != null)
             imageView.setImageBitmap(bitmap);
         else {
-            queuePhoto(url, imageView);
+            queuePhoto(url, imageView, handler);
             imageView.setImageResource(stub_id);
         }
     }
 
-    private void queuePhoto(String url, ImageView imageView) {
+    private void queuePhoto(String url, ImageView imageView, Handler handler) {
         PhotoToLoad p = new PhotoToLoad(url, imageView);
-        executorService.submit(new PhotosLoader(p));
+        executorService.submit(new PhotosLoader(p, handler));
     }
 
     public Bitmap getBitmap(String url) {
@@ -214,9 +213,11 @@ public class ImageLoader {
 
     class PhotosLoader implements Runnable {
         PhotoToLoad photoToLoad;
+        private final Handler handler;
 
-        PhotosLoader(PhotoToLoad photoToLoad) {
+        PhotosLoader(PhotoToLoad photoToLoad, Handler handler) {
             this.photoToLoad = photoToLoad;
+            this.handler = handler;
         }
 
         @Override
@@ -229,7 +230,7 @@ public class ImageLoader {
                 if (imageViewReused(photoToLoad))
                     return;
                 BitmapDisplayer bd = new BitmapDisplayer(bmp, photoToLoad);
-                handler.post(bd);
+                this.handler.post(bd);
             } catch (Throwable th) {
                 th.printStackTrace();
             }
